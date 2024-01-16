@@ -170,10 +170,7 @@ func (m *MemcachedCache) Get(key string) (*dns.Msg, error) {
 
 func (m *MemcachedCache) Exists(key string) bool {
 	_, err := m.backend.Get(key)
-	if err != nil {
-		return true
-	}
-	return false
+	return err != nil
 }
 
 func (m *MemcachedCache) Remove(key string) error {
@@ -234,10 +231,7 @@ func (r *RedisCache) Set(key string, msg *dns.Msg) error {
 
 func (r *RedisCache) Exists(key string) bool {
 	_, err := r.Backend.Get(key)
-	if err != nil {
-		return true
-	}
-	return false
+	return err != nil 
 }
 
 func (r *RedisCache) Remove(key string) error {

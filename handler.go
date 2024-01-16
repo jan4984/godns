@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"net"
 	"time"
 
@@ -108,7 +109,7 @@ func (h *GODNSHandler) do(Net string, w dns.ResponseWriter, req *dns.Msg) {
 					Ttl:    settings.Hosts.TTL,
 				}
 				for _, ip := range ips {
-					a := &dns.A{rr_header, ip}
+					a := &dns.A{Hdr: rr_header, A: ip}
 					m.Answer = append(m.Answer, a)
 				}
 			case _IP6Query:
@@ -119,11 +120,14 @@ func (h *GODNSHandler) do(Net string, w dns.ResponseWriter, req *dns.Msg) {
 					Ttl:    settings.Hosts.TTL,
 				}
 				for _, ip := range ips {
-					aaaa := &dns.AAAA{rr_header, ip}
+					aaaa := &dns.AAAA{Hdr: rr_header, AAAA: ip}
 					m.Answer = append(m.Answer, aaaa)
 				}
 			}
 
+			rand.Shuffle(len(m.Answer), func(i, j int) {
+				m.Answer[j],m.Answer[i] = m.Answer[i],m.Answer[j]
+			})
 			w.WriteMsg(m)
 			logger.Debug("%s found in hosts file", Q.qname)
 			return
@@ -135,13 +139,13 @@ func (h *GODNSHandler) do(Net string, w dns.ResponseWriter, req *dns.Msg) {
 	key := KeyGen(Q)
 	mesg, err := h.cache.Get(key)
 	if err != nil {
-		if mesg, err = h.negCache.Get(key); err != nil {
-			logger.Debug("%s didn't hit cache", Q.String())
-		} else {
+		if _, err = h.negCache.Get(key); err == nil {
 			logger.Debug("%s hit negative cache", Q.String())
 			dns.HandleFailed(w, req)
 			return
 		}
+
+		logger.Debug("%s didn't hit cache", Q.String())
 	} else {
 		logger.Debug("%s hit cache", Q.String())
 		// we need this copy against concurrent modification of Id
